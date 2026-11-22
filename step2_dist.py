@@ -17,7 +17,10 @@ from common import *
 ap = argparse.ArgumentParser()
 ap.add_argument("--mode", required=True, choices=["equiv", "manual", "ddp", "ddp_ns", "train"])
 ap.add_argument("--tag", default="")
+ap.add_argument("--b", type=int, default=0)
+ap.add_argument("--lr", type=float, default=0)
 a = ap.parse_args()
+LR0 = a.lr or LR0
 
 torch.set_num_threads(N_TH)
 _rank = int(os.environ["RANK"])
@@ -26,7 +29,7 @@ _store = dist.TCPStore(os.environ["MASTER_ADDR"], int(os.environ["MASTER_PORT"])
                        _world, is_master=(_rank == 0), use_libuv=False)
 dist.init_process_group(backend="gloo", store=_store, rank=_rank, world_size=_world)
 rank, P = dist.get_rank(), dist.get_world_size()
-b = B // P
+b = a.b or B // P
 
 train = load_split(DATA, "train", n=N_TRAIN)
 loss_fn = nn.CrossEntropyLoss()
@@ -124,7 +127,7 @@ elif a.mode in ("manual", "ddp", "ddp_ns"):
             if a.mode == "manual":
                 syncs.append(t_sync)
     res = {"P": P, "b": b, "t_step_ms": round(statistics.median(steps) * 1000, 2),
-           "X": round(50 * B / sum(steps), 1)}
+           "X": round(50 * b * P / sum(steps), 1)}
     if a.mode == "manual":
         res["t_sync_ms"] = round(statistics.median(syncs) * 1000, 2)
     save(a.mode + a.tag, res)
@@ -147,13 +150,13 @@ else:
             step += 1
             rows.append((step, epoch + 1, l.item()))
     if rank == 0:
-        with open("results/loss_ddp.csv", "w", newline="") as f:
+        with open(f"results/loss_ddp{a.tag}.csv", "w", newline="") as f:
             w = csv.writer(f)
             w.writerow(["step", "epoch", "loss"])
             w.writerows(rows)
         test = load_split(DATA, "test")
         acc, auc = evaluate(model.module, test)
-        save("train", {"steps": step, "ACC": acc, "AUC": auc})
+        save("train" + a.tag, {"steps": step, "ACC": acc, "AUC": auc})
     dist.barrier()
 
 dist.destroy_process_group()
