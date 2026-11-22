@@ -16,6 +16,7 @@ from common import *
 
 ap = argparse.ArgumentParser()
 ap.add_argument("--mode", required=True, choices=["equiv", "manual", "ddp", "ddp_ns", "train"])
+ap.add_argument("--tag", default="")
 a = ap.parse_args()
 
 torch.set_num_threads(N_TH)
@@ -126,7 +127,7 @@ elif a.mode in ("manual", "ddp", "ddp_ns"):
            "X": round(50 * B / sum(steps), 1)}
     if a.mode == "manual":
         res["t_sync_ms"] = round(statistics.median(syncs) * 1000, 2)
-    save(a.mode, res)
+    save(a.mode + a.tag, res)
 
 else:
     model = DDP(new_model())
