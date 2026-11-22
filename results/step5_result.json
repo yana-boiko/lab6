@@ -1,0 +1,12 @@
+{
+  "K_c": 10,
+  "s_f": 25,
+  "steps_total": 108,
+  "ACC": 0.752921129503408,
+  "AUC": 0.9581567439473805,
+  "last_ckpt_step": 20,
+  "steps_redone": 4,
+  "t_f_minus_t_c_s": 0.14,
+  "t_r_s": 11.58,
+  "t_lost_s": 11.72
+}
